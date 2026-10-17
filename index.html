@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Organisation</title>
+  <meta name="description" content="Tâches, calendrier et objectifs au même endroit.">
+  <meta name="theme-color" content="#FFFFFF">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Organisation">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%232F3437'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // Applique le thème choisi avant l'affichage pour éviter un flash.
+    try {
+      var saved = JSON.parse(localStorage.getItem('organise.v1') || '{}').settings;
+      if (saved && (saved.theme === 'dark' || saved.theme === 'light')) document.documentElement.dataset.theme = saved.theme;
+    } catch (e) {}
+  </script>
+</head>
+<body>
+  <div class="app">
+    <nav class="sidebar" id="sidebar" aria-label="Navigation principale"></nav>
+    <div class="scrim" data-act="close-nav"></div>
+    <div class="main">
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-act="toggle-nav" aria-label="Menu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="topbar-title" id="topbar-title"></div>
+        <button type="button" class="icon-btn" data-act="open-search" aria-label="Rechercher">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.8-3.8"/></svg>
+        </button>
+      </header>
+      <main id="view" class="view"></main>
+    </div>
+    <button type="button" class="fab" data-act="new-task" aria-label="Nouvelle tâche">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+    </button>
+  </div>
+  <div id="peek-root"></div>
+  <div id="modal-root"></div>
+  <div id="toast-root" class="toasts" aria-live="polite"></div>
+
+  <script src="js/dates.js"></script>
+  <script src="js/model.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/sync.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/peek.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    // Installation sur l'écran d'accueil et usage hors ligne (inutile en file://).
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js');
+  </script>
+</body>
+</html>
