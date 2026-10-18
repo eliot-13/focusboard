@@ -1,11 +1,11 @@
 // Service worker : rend l'application utilisable hors ligne une fois installée.
 // Stratégie : réponse immédiate depuis le cache, puis mise à jour en arrière-plan (visible au lancement suivant).
 // Les appels à l'API GitHub (synchronisation) ne passent jamais par le cache.
-const CACHE = 'organise-v1';
+const CACHE = 'organise-v2';
 const SHELL = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'js/dates.js', 'js/model.js', 'js/core.js', 'js/sync.js', 'js/views.js', 'js/peek.js', 'js/app.js',
-  'icons/icon-192.png', 'icons/apple-touch-icon.png',
+  'icons/icon-192.png', 'icons/apple-touch-icon.png', 'icons/icon.svg',
 ];
 const FONTS = ['https://fonts.googleapis.com', 'https://fonts.gstatic.com'];
 
