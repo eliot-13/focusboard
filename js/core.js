@@ -6,6 +6,10 @@
   // ---------------------------------------------------------------- Stockage
 
   const KEY = 'organise.v1';
+  const BACKUPS_KEY = 'organise.backups';
+  const VERSION_KEY = 'organise.appVersion';
+  // À augmenter à chaque publication : la nouvelle version sauvegarde les données avant de s'en servir.
+  const APP_VERSION = '2026-10-18.1';
   let state = M.emptyState();
   let base = M.emptyState(); // dernier état enregistré, pour dater les modifications
   let persistent = true;
@@ -23,12 +27,41 @@
     }
   }
 
+  // ---- Sauvegardes automatiques (voir M.addBackup)
+
+  function readBackups() {
+    try { return JSON.parse(localStorage.getItem(BACKUPS_KEY)) || []; } catch (e) { return []; }
+  }
+
+  // Si la place manque, les sauvegardes les plus anciennes sont abandonnées.
+  function writeBackups(list) {
+    for (let n = list.length; n > 0; n--) {
+      try { localStorage.setItem(BACKUPS_KEY, JSON.stringify(list.slice(0, n))); return; } catch (e) { /* quota */ }
+    }
+  }
+
+  function backup(data, reason, version) {
+    const next = M.addBackup(readBackups(), data, { now: Date.now(), reason, version: version || APP_VERSION });
+    if (next) writeBackups(next);
+  }
+
+  // À l'ouverture, avant que ce code ne réécrive les données : nouvelle version ou premier lancement du jour.
+  function backupOnLoad(raw) {
+    try {
+      const lastVersion = localStorage.getItem(VERSION_KEY);
+      const reason = M.backupReason(readBackups(), { now: Date.now(), version: APP_VERSION, lastVersion });
+      if (raw && reason) backup(JSON.parse(raw), reason, reason === 'version' ? lastVersion : APP_VERSION);
+      localStorage.setItem(VERSION_KEY, APP_VERSION);
+    } catch (e) { /* une sauvegarde ratée ne doit pas empêcher l'ouverture */ }
+  }
+
   const S = {
     get state() { return state; },
     get persistent() { return persistent; },
     load() {
       try {
         const raw = localStorage.getItem(KEY);
+        backupOnLoad(raw);
         state = raw ? M.normalize(JSON.parse(raw)) : M.emptyState();
       } catch (e) {
         state = M.emptyState();
@@ -69,6 +102,17 @@
       U.toast(message, 'Annuler', () => S.replace(JSON.parse(snap)));
     },
     subscribe(fn) { listeners.push(fn); },
+    backups: readBackups,
+    // Sauvegarde immédiate de l'état actuel (avant un import ou un effacement).
+    backupNow(reason) { backup(snapshot(), reason); },
+    // Remplace l'état par une sauvegarde. Les éléments sont redatés : ils l'emportent ensuite sur la synchro.
+    restore(at) {
+      const entry = readBackups().find((b) => b.at === at);
+      if (!entry) return false;
+      backup(snapshot(), 'restauration');
+      S.replace(entry.data);
+      return true;
+    },
   };
 
   // Synchronise les onglets ouverts en parallèle.

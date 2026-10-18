@@ -280,10 +280,20 @@
     'reset-data'() {
       if (!confirm('Effacer définitivement toutes vos tâches, événements et objectifs ?\nPensez à exporter une sauvegarde avant.')) return;
       P.close();
+      S.backupNow('effacement');
       const settings = S.state.settings;
       S.replace(Object.assign(M.emptyState(), { settings }));
       U.closeTop();
       U.toast('Toutes les données ont été effacées');
+    },
+    'restore-backup'(el) {
+      const at = Number(el.dataset.at);
+      if (!confirm('Restaurer la sauvegarde du ' + backupDate(at) + ' ?\nVos données actuelles seront remplacées. Elles sont d\'abord sauvegardées, vous pourrez donc revenir en arrière.')) return;
+      P.close();
+      if (!S.restore(at)) { U.toast('Sauvegarde introuvable'); return; }
+      applyTheme();
+      U.closeTop();
+      U.toast('Sauvegarde du ' + backupDate(at) + ' restaurée');
     },
   });
 
@@ -393,6 +403,7 @@
           : 'Le stockage du navigateur est indisponible : vos données ne seront pas conservées après fermeture.') + '</p></div>'
         + '<div class="settings-actions"><button type="button" class="btn btn-sm" data-act="export-data">' + icon('download') + 'Exporter</button>'
         + '<label class="btn btn-sm">' + icon('upload') + 'Importer<input type="file" accept="application/json,.json" id="set-import" hidden></label></div></div>'
+        + '<div class="settings-row" style="display:block">' + backupRow() + '</div>'
         + '<div class="settings-row"><div><h3>Tout effacer</h3><p>Supprime toutes les tâches, événements et objectifs.</p></div>'
         + '<button type="button" class="btn btn-sm btn-danger" data-act="reset-data">' + icon('trash') + 'Effacer</button></div>'
         + '<div class="settings-row" style="display:block"><h3>Raccourcis clavier</h3><div class="shortcuts">'
@@ -428,6 +439,7 @@
         if (!M.isValidState(data)) { U.toast('Ce fichier ne ressemble pas à une sauvegarde de l\'application.'); return; }
         if (!confirm('Remplacer toutes vos données actuelles par celles de « ' + file.name + ' » ?')) return;
         P.close();
+        S.backupNow('import');
         S.replace(data);
         applyTheme();
         m.close();
@@ -435,6 +447,24 @@
       };
       reader.readAsText(file);
     });
+  }
+
+  const backupDate = (at) => new Date(at).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+
+  function backupRow() {
+    const list = S.backups();
+    const count = (d, key, one, many) => {
+      const n = Array.isArray(d[key]) ? d[key].length : 0;
+      return n + ' ' + (n > 1 ? many : one);
+    };
+    return '<h3>Sauvegardes automatiques</h3><p>Avant chaque mise à jour de l\'app, une fois par jour, et avant un import ou un effacement. '
+      + 'Les 10 dernières restent sur cet appareil.</p>'
+      + (list.length
+        ? '<div class="backup-list">' + list.map((b) => '<div class="backup-item"><div><b>' + esc(backupDate(b.at)) + '</b>'
+          + '<span>' + esc((M.BACKUP_REASONS[b.reason] || 'Sauvegarde') + ' · ' + count(b.data, 'tasks', 'tâche', 'tâches') + ', '
+            + count(b.data, 'events', 'événement', 'événements') + ', ' + count(b.data, 'goals', 'objectif', 'objectifs')) + '</span></div>'
+          + '<button type="button" class="btn btn-sm" data-act="restore-backup" data-at="' + b.at + '">Restaurer</button></div>').join('') + '</div>'
+        : '<p>Aucune sauvegarde pour l\'instant : la première sera créée à la prochaine ouverture de l\'app, dès qu\'il y aura des données.</p>');
   }
 
   function syncRow() {

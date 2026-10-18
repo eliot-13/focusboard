@@ -786,6 +786,11 @@ kbd {
 .settings-row input[type="text"], .settings-row input[type="password"] { border: 1px solid var(--border); border-radius: 6px; padding: 5px 9px; background: var(--surface); width: 200px; }
 .settings-actions { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .settings-actions input + .btn { height: auto; align-self: stretch; }
+.backup-list { margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; }
+.backup-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-top: 1px solid var(--border); }
+.backup-item:first-child { border-top: 0; }
+.backup-item b { display: block; font-size: 13.5px; font-weight: 500; }
+.backup-item span { display: block; font-size: 12.5px; color: var(--muted); }
 .settings-row p a { color: var(--text); text-decoration: underline; text-underline-offset: 2px; }
 .shortcuts { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; font-size: 13.5px; padding: 12px 0; }
 .shortcuts span:nth-child(even) { display: flex; gap: 4px; justify-content: flex-end; }

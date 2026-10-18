@@ -357,6 +357,39 @@
     return JSON.stringify(copy);
   }
 
+  // ---- Sauvegardes automatiques (propres à chaque appareil)
+  // À l'ouverture d'une nouvelle version, une fois par jour, et avant un import, un effacement ou une restauration.
+
+  const BACKUP_MAX = 10;
+  const BACKUP_REASONS = {
+    version: 'Avant une mise à jour',
+    jour: 'Sauvegarde du jour',
+    import: 'Avant un import',
+    effacement: 'Avant un effacement',
+    restauration: 'Avant une restauration',
+  };
+
+  // Motif d'une sauvegarde à l'ouverture de l'application, ou null.
+  function backupReason(backups, opts) {
+    if (opts.lastVersion && opts.lastVersion !== opts.version) return 'version';
+    const last = backups[0];
+    if (!last || D.toKey(new Date(last.at)) !== D.toKey(new Date(opts.now))) return 'jour';
+    return null;
+  }
+
+  // Ajoute une sauvegarde en tête (10 au plus) et renvoie la nouvelle liste,
+  // ou null s'il n'y a rien à protéger (aucune donnée, ou identique à la dernière sauvegarde).
+  // Les données sont gardées telles quelles, sans normalisation, pour rester restaurables après un changement de format.
+  function addBackup(backups, data, opts) {
+    if (!isValidState(data)) return null;
+    const state = normalize(data);
+    if (!COLLECTIONS.some((c) => state[c].length)) return null;
+    const list = (Array.isArray(backups) ? backups : []).filter((b) => b && isValidState(b.data));
+    if (list[0] && serialize(normalize(list[0].data)) === serialize(state)) return null;
+    list.unshift({ at: opts.now, reason: opts.reason, version: opts.version || null, data: data });
+    return list.slice(0, BACKUP_MAX);
+  }
+
   // ---- Recherche (insensible à la casse et aux accents)
 
   function norm(s) {
@@ -381,5 +414,6 @@
     nextOccurrence, toggleTask, moveTask, tasksIn, overdueTasks, sortTasks, dueStatus,
     goalPeriodLabel, goalProgress, parentCandidates, eventsOn, tasksOn, layoutDay, norm, search,
     stamp, merge, serialize,
+    BACKUP_REASONS, backupReason, addBackup,
   };
 });

@@ -242,3 +242,49 @@ test('horodatage : un état remplacé (import, annulation) garde les traces de s
   M.stamp(base, importe, 30);
   assert.deepEqual(importe.deleted, { vieux: 5, a: 30 });
 });
+
+test("sauvegarde à l'ouverture : nouvelle version ou nouveau jour", () => {
+  const now = new Date(2026, 9, 18, 15).getTime();
+  const sameDay = [{ at: new Date(2026, 9, 18, 8).getTime() }];
+  const yesterday = [{ at: new Date(2026, 9, 17, 23).getTime() }];
+  assert.equal(M.backupReason([], { now, version: 'b' }), 'jour');
+  assert.equal(M.backupReason(sameDay, { now, version: 'b', lastVersion: 'b' }), null);
+  assert.equal(M.backupReason(sameDay, { now, version: 'b' }), null);
+  assert.equal(M.backupReason(yesterday, { now, version: 'b', lastVersion: 'b' }), 'jour');
+  assert.equal(M.backupReason(sameDay, { now, version: 'b', lastVersion: 'a' }), 'version');
+});
+
+test('ajout de sauvegarde : ignore le vide et les doublons, garde les 10 dernières', () => {
+  const data = M.emptyState();
+  data.tasks.push(M.newTask({ id: 't1', title: 'Garder' }));
+  assert.equal(M.addBackup([], M.emptyState(), { now: 1, reason: 'jour' }), null);
+  assert.equal(M.addBackup([], { tasks: 'abîmé' }, { now: 1, reason: 'jour' }), null);
+  const one = M.addBackup([], data, { now: 1, reason: 'jour', version: 'a' });
+  assert.equal(one.length, 1);
+  assert.equal(one[0].data.tasks[0].title, 'Garder');
+  assert.equal(M.addBackup(one, JSON.parse(JSON.stringify(data)), { now: 2, reason: 'version' }), null);
+  let list = [{ at: 0, data: null }].concat(one);
+  for (let i = 0; i < 12; i++) {
+    const d = JSON.parse(JSON.stringify(data));
+    d.tasks[0].title = 'v' + i;
+    list = M.addBackup(list, d, { now: 10 + i, reason: 'jour' });
+  }
+  assert.equal(list.length, 10);
+  assert.equal(list[0].data.tasks[0].title, 'v11');
+  assert.ok(list.every((b) => b.data));
+});
+
+test("restauration : les éléments restaurés l'emportent sur la synchro", () => {
+  const backup = M.emptyState();
+  backup.tasks.push(M.newTask({ id: 'a', title: 'Ancien titre', updatedAt: 100 }));
+  const current = M.normalize(JSON.parse(JSON.stringify(backup)));
+  current.tasks[0].title = 'Titre abîmé';
+  current.tasks[0].updatedAt = 500;
+  current.tasks.push(M.newTask({ id: 'b', title: 'Créée après', updatedAt: 600 }));
+  // Restaurer = remplacer l'état puis le dater, comme S.replace.
+  const restored = M.stamp(current, M.normalize(JSON.parse(JSON.stringify(backup))), 1000);
+  const remote = M.normalize(JSON.parse(JSON.stringify(current)));
+  const merged = M.merge(restored, remote);
+  assert.deepEqual(merged.tasks.map((t) => t.title), ['Ancien titre']);
+  assert.equal(merged.deleted.b, 1000);
+});
